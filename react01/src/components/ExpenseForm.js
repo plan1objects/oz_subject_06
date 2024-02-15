@@ -1,10 +1,10 @@
 import React from 'react';
 import './ExpenseForm.css';
-import { hasFormSubmit } from '@testing-library/user-event/dist/utils';
+import { MdSend } from 'react-icons/md';
 
-const ExpenseForm = ( charge, handleCharge, amount, handleAmount) => {
+const ExpenseForm = ( {charge, handleCharge, amount, handleAmount, handleSubmit, edit}) => {
         return (
-            <form onSubmit={hasFormSubmit}>
+            <form onSubmit={handleSubmit}>
                 <div className='form-center'>
                     <div className='form-group'>
                         <label htmlFor='charge'>상품</label>
@@ -30,7 +30,8 @@ const ExpenseForm = ( charge, handleCharge, amount, handleAmount) => {
                     </div>
                 </div>
                 <button className='btn' type='submit'>
-                    제출
+                   {edit ? '수정' : '제출'}
+                   <MdSend className='btn-icon' />
                 </button>
             </form>
         );
