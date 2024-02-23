@@ -1,9 +1,21 @@
 import { useEffect, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 import {styled} from 'styled-components';
+import { getAuth, onAuthStateChanged, signInWithPopup, GoogleAuthProvider, signOut } from 'firebase/auth';
+import app from '../../firebase';
+
+const initialUserData = localStorage.getItem('userData') ? JSON.parse(localStorage.getItem('userData')) : {}
 
 const Nav = () => {
 
     const [show, setShow] = useState('false');
+    const [userData, setUserData] = useState(initialUserData);
+    const [searchValue, setSearchValue] = useState('');
+    const navigate = useNavigate();
+    const {pathname} = useLocation();
+    const auth = getAuth(app);
+    const provider = new GoogleAuthProvider();
+
     const listener = () => {
         if(window.scrollY > 50){
             setShow('true');
@@ -13,11 +25,47 @@ const Nav = () => {
     }
 
     useEffect(()=>{
+        onAuthStateChanged( auth, (user) => {
+            if(!user){
+                navigate('/');
+            }else if(user && pathname === '/'){
+                navigate('/main');
+            }
+        });
+
+    },[auth, navigate, pathname]);
+
+    useEffect(()=>{
         window.addEventListener('scroll', listener);
         return() => {
             window.removeEventListener('scroll', listener);
         }
     },[]);
+
+    const handleChange = (e) => {
+        setSearchValue(e.target.value);
+        navigate(`/search?q=${e.target.value}`);
+    }
+
+    const handleAuth = () => {
+        signInWithPopup(auth, provider)
+        .then((result)=>{
+            setUserData(result.user);
+            localStorage.setItem('userData', JSON.stringify(result.user));
+        })
+        .catch((error)=>{
+            alert(error.message);
+        })
+    }
+
+    const handleLogOut = () => {
+        signOut(auth).then(()=>{
+            setUserData({});
+            localStorage.removeItem('userData');
+        }).catch((error) => {
+            alert(error.message);
+        })
+    }
 
     return (
         <NavWrapper show={show} >
@@ -27,10 +75,102 @@ const Nav = () => {
                     alt="logo"
                     onClick={() => {window.location.href= '/'}} />
             </Logo>
+
+            {
+                pathname === '/' ? (
+                    <Login
+                    onClick={handleAuth}
+                    >로그인</Login>
+                ) : (
+                <Input 
+                type='text'
+                className='nav__input'
+                value={searchValue}
+                onChange={handleChange}
+                placeholder='영화를 검색해주세요.'
+                 />
+
+                )
+         }
+        {
+            pathname !== '/' ? <SignOut>
+            <UserImg src={userData.photoURL} alt={userData.displayName} />
+            <DropDown>
+                <span onClick={handleLogOut}>
+                    Sign Out
+                </span>
+            </DropDown>
+        </SignOut> 
+              : 
+            null
+        }
         </NavWrapper>
         );
 };
 
+const UserImg = styled.img`
+  border-radius: 50%;
+  width: 100%;
+  height: 100%;
+`;
+
+const DropDown = styled.div`
+  position: absolute;
+  top: 48px;
+  right: 0;
+  background-color: rgba(19,19,19);
+  border: 1px solid rgba(151,151,151, 0.34);
+  border-radius: 4px;
+  box-shadow: rgb(0 0 0 / 50%) 0px 0px 18px 0px;
+  padding: 10px;
+  font-size: 14px;
+  letter-spacing: 3px;
+  width: 100px;
+  opacity: 0;
+`;
+
+const SignOut = styled.div`
+  position: relative;
+  height: 48px;
+  width: 48px;
+  display: flex;
+  cursor: pointer;
+  align-items: center;
+  justify-content: center;
+
+  &:hover { 
+    ${DropDown}{
+      opacity: 1;
+      transition-duration: 1s;
+    }
+  }
+`;
+const Input = styled.input`
+    position: fixed;
+    left: 50%;
+    transform: translate(-50%, 0);
+    background-color: rgba(0,0,0,0.5);
+    border-radius: 5px;
+    color: #fff;
+    padding: 5px;
+    border: solid 1px lightgray;
+`;
+
+const Login = styled.a`
+    background-color: rgba(0,0,0,0.6);
+    padding: 8px 16px;
+    text-transform: uppercase;
+    letter-spacing: 1.5px;
+    border: solid 1px #f9f9f9;
+    border-radius: 4px;
+    transition: all 0.2s ease;
+
+    &:hover{
+        background-color: #f9f9f9;
+        color: #000;
+        border-color: transparent;
+    }
+`;
 const Logo = styled.a`
     padding : 0;
     width : 70px;
